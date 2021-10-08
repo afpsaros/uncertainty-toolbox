@@ -4,6 +4,9 @@ section:
 https://github.com/uncertainty-toolbox/uncertainty-toolbox/blob/recal/README.md#recalibration
 """
 
+import sys, os
+sys.path.append(os.path.abspath('../'))
+
 import numpy as np
 import matplotlib.pyplot as plt
 import uncertainty_toolbox as uct

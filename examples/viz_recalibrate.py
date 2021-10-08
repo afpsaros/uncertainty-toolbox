@@ -77,6 +77,8 @@ for i, pred_mean in enumerate(pred_mean_list):
             pred_mean, pred_std, y
         )
         pred_std_recal = std_recalibrator(pred_std)
+        
+        print(pred_std_recal/pred_std)
 
         mace = uct.mean_absolute_calibration_error(pred_mean, pred_std_recal, y)
         rmsce = uct.root_mean_squared_calibration_error(pred_mean, pred_std_recal, y)

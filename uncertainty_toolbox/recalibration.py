@@ -128,7 +128,6 @@ def iso_recal(
 
     return iso_model
 
-
 def optimize_recalibration_ratio(
     y_mean: np.ndarray,
     y_std: np.ndarray,
@@ -186,7 +185,6 @@ def optimize_recalibration_ratio(
             opt_ratio = 1.0
 
     return opt_ratio
-
 
 def get_std_recalibrator(
     y_mean: np.ndarray,
@@ -282,3 +280,4 @@ def get_interval_recalibrator(
         return recal_bounds
 
     return interval_recalibrator
+

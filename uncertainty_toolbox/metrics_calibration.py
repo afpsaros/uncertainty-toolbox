@@ -305,7 +305,7 @@ def get_proportion_lists_vectorized(
     y_pred: np.ndarray,
     y_std: np.ndarray,
     y_true: np.ndarray,
-    num_bins: int = 100,
+    num_bins: int = 10,
     recal_model: Any = None,
     prop_type: str = "interval",
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -340,7 +340,7 @@ def get_proportion_lists_vectorized(
     # Compute proportions
     exp_proportions = np.linspace(0, 1, num_bins)
     # If we are recalibrating, input proportions are recalibrated proportions
-    if recal_model is not None:
+    if recal_model is not None and type(recal_model) is not list:
         in_exp_proportions = recal_model.predict(exp_proportions)
     else:
         in_exp_proportions = exp_proportions
@@ -349,11 +349,31 @@ def get_proportion_lists_vectorized(
     normalized_residuals = (residuals.flatten() / y_std.flatten()).reshape(-1, 1)
     norm = stats.norm(loc=0, scale=1)
     if prop_type == "interval":
-        gaussian_lower_bound = norm.ppf(0.5 - in_exp_proportions / 2.0)
-        gaussian_upper_bound = norm.ppf(0.5 + in_exp_proportions / 2.0)
+        needed_lower_bound = 0.5 - in_exp_proportions / 2.0
+        needed_upper_bound = 0.5 + in_exp_proportions / 2.0
+        
+        # print(needed_lower_bound, needed_upper_bound)
+        
+        if type(recal_model) is not list:
+            lower_bound = norm.ppf(needed_lower_bound)
+            upper_bound = norm.ppf(needed_upper_bound)
+        else:
+            args_lower = [int(el * len(recal_model)) 
+                          if int(el * len(recal_model)) < len(recal_model) 
+                          else len(recal_model) - 1 for el in needed_lower_bound] 
+            args_upper = [int(el * len(recal_model)) 
+                          if int(el * len(recal_model)) < len(recal_model) 
+                          else len(recal_model) - 1 for el in needed_upper_bound] 
+            
+            # print(args_lower, args_upper, recal_model)
+            
+            lower_bound = [recal_model[el] for el in args_lower]
+            upper_bound = [recal_model[el] for el in args_upper]
+            
+            
 
-        above_lower = normalized_residuals >= gaussian_lower_bound
-        below_upper = normalized_residuals <= gaussian_upper_bound
+        above_lower = normalized_residuals >= lower_bound
+        below_upper = normalized_residuals <= upper_bound
 
         within_quantile = above_lower * below_upper
         obs_proportions = np.sum(within_quantile, axis=0).flatten() / len(residuals)
@@ -391,6 +411,7 @@ def get_proportion_lists(
     Returns:
         A tuple of two numpy arrays, expected proportions and observed proportions
     """
+    
     # Check that input arrays are flat
     assert_is_flat_same_shape(y_pred, y_std, y_true)
     # Check that input std is positive
@@ -401,14 +422,14 @@ def get_proportion_lists(
     # Compute proportions
     exp_proportions = np.linspace(0, 1, num_bins)
     # If we are recalibrating, input proportions are recalibrated proportions
-    if recal_model is not None:
+    if recal_model is not None and type(recal_model) is not list:
         in_exp_proportions = recal_model.predict(exp_proportions)
     else:
         in_exp_proportions = exp_proportions
 
     if prop_type == "interval":
         obs_proportions = [
-            get_proportion_in_interval(y_pred, y_std, y_true, quantile)
+            get_proportion_in_interval(y_pred, y_std, y_true, quantile, recal_model)
             for quantile in in_exp_proportions
         ]
     elif prop_type == "quantile":
@@ -421,7 +442,7 @@ def get_proportion_lists(
 
 
 def get_proportion_in_interval(
-    y_pred: np.ndarray, y_std: np.ndarray, y_true: np.ndarray, quantile: float
+    y_pred: np.ndarray, y_std: np.ndarray, y_true: np.ndarray, quantile: float, recal_model
 ) -> float:
     """For a specified quantile, return the proportion of points falling into
     an interval corresponding to that quantile.
@@ -442,10 +463,29 @@ def get_proportion_in_interval(
     # Check that input std is positive
     assert_is_positive(y_std)
 
+    needed_lower_bound = 0.5 - quantile / 2.0
+    needed_upper_bound = 0.5 + quantile / 2.0
+
     # Computer lower and upper bound for quantile
-    norm = stats.norm(loc=0, scale=1)
-    lower_bound = norm.ppf(0.5 - quantile / 2)
-    upper_bound = norm.ppf(0.5 + quantile / 2)
+    if type(recal_model) is not list:
+        norm = stats.norm(loc=0, scale=1)
+        lower_bound = norm.ppf(0.5 - quantile / 2)
+        upper_bound = norm.ppf(0.5 + quantile / 2)
+        
+        # print(quantile)
+    else:
+        arg_lower = int(needed_lower_bound * len(recal_model)) \
+                      if int(needed_lower_bound * len(recal_model)) < len(recal_model) \
+                      else len(recal_model) - 1
+                      
+        arg_upper = int(needed_upper_bound * len(recal_model)) \
+                      if int(needed_upper_bound * len(recal_model)) < len(recal_model) \
+                      else len(recal_model) - 1
+        
+        lower_bound = recal_model[arg_lower]
+        upper_bound = recal_model[arg_upper]
+        
+    # print(lower_bound)
 
     # Compute proportion of normalized residuals within lower to upper bound
     residuals = y_pred - y_true
@@ -540,13 +580,33 @@ def get_prediction_interval(
         raise ValueError("Quantile must be greater than 0.0 and less than 1.0")
 
     # if recal_model is not None, calculate recalibrated quantile
-    if recal_model is not None:
+    if recal_model is not None and type(recal_model) is not list:
         quantile = recal_model.predict(quantile)
 
     # Computer lower and upper bound for quantile
     norm = stats.norm(loc=y_pred, scale=y_std)
-    lower_bound = norm.ppf(0.5 - quantile / 2)
-    upper_bound = norm.ppf(0.5 + quantile / 2)
+    
+    needed_lower_bound = 0.5 - quantile / 2.0
+    needed_upper_bound = 0.5 + quantile / 2.0
+    
+    if type(recal_model) is not list:
+        # print(needed_lower_bound)
+        
+        lower_bound = norm.ppf(needed_lower_bound)
+        upper_bound = norm.ppf(needed_upper_bound)
+        
+        # print(lower_bound)
+    else:
+        arg_lower = int(needed_lower_bound * len(recal_model)) \
+                      if int(needed_lower_bound * len(recal_model)) < len(recal_model) \
+                      else len(recal_model) - 1
+                      
+        arg_upper = int(needed_upper_bound * len(recal_model)) \
+                      if int(needed_upper_bound * len(recal_model)) < len(recal_model) \
+                      else len(recal_model) - 1
+        
+        lower_bound = y_pred + recal_model[arg_lower] * y_std
+        upper_bound = y_pred + recal_model[arg_upper] * y_std
 
     bounds = Namespace(
         upper=upper_bound,
