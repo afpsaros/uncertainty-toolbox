@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath('../'))
 import uncertainty_toolbox as uct
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.stats as stats
 
 def get_scaled_residuals(mu, sigma, y):
     
@@ -26,11 +27,21 @@ def CRUDE_cdf(mu_recal, sigma_recal, y_recal, mu_eval, sigma_eval, y_evals):
     
     return np.array(cdf_list)
 
-def get_stds_from_cdfs(cdfs, means, inv_recal = {'method': None,
-                                                 'model': None}):
+def get_stds_from_cdfs(means, un_cal_stds, inv_recal = {'method': None,
+                                                        'model': None}):
+    
+    cdfs = []
+    if inv_recal['method'] in [None, 'cdf_recal']:
+        for mu, sigma in zip(means, un_cal_stds):
+            norm = stats.norm(loc=mu, scale=sigma)
+            cdfs.append(norm.cdf)
+    elif inv_recal['method'] == 'CRUDE_recal': 
+        for mu, sigma in zip(means, un_cal_stds):
+            cdfs.append([mu, sigma])
+    
     stds = []
     for cdf, mu in zip(cdfs, means):
-        locs = np.linspace(0, 15, 1000)
+        locs = np.linspace(0, 5, 1000)
         
         if inv_recal['method'] is None:
             cdf_vals = cdf(np.sqrt(locs)) - cdf(-np.sqrt(locs))
@@ -58,28 +69,37 @@ def get_stds_from_cdfs(cdfs, means, inv_recal = {'method': None,
 def get_calibrator(mu, sigma, y, method):
     if method == 'std_recal':
         return uct.recalibration.get_std_recalibrator(mu, sigma, y)
-    else:
-        exp_props, obs_props = uct.get_proportion_lists_vectorized(
-            mu, sigma, y
-        )
+    elif method == 'cdf_recal': 
+        exp_props, obs_props = get_proportions(mu, sigma, y, num_bins = 200
+                                               , prop_type = 'quantile')
 
         return uct.iso_recal(exp_props, obs_props) 
+    elif method == 'CRUDE':
+        return np.sort(get_scaled_residuals(mu, sigma, y)).tolist()
     
-def get_proportions(mu, sigma, y, cal_dict = {'method': None,
-                                          'model': None},
-                    num_bins = 10):
+def get_proportions(mu, sigma, y, cal_dict = {'method': None, 'model': None},
+                    num_bins = 20, prop_type = 'quantile'):
     
     if cal_dict['method'] is None:
-        return uct.get_proportion_lists_vectorized(mu, sigma, y, num_bins = num_bins)
+        return uct.get_proportion_lists_vectorized(mu, sigma, y, num_bins = num_bins,
+                                                   prop_type = prop_type)
             
     elif cal_dict['method'] == 'std_recal':
         return uct.get_proportion_lists_vectorized(mu, cal_dict['model'](sigma), y, 
-                                                   num_bins = num_bins)
+                                                   num_bins = num_bins,
+                                                   prop_type = prop_type)
     
     elif cal_dict['method'] in ['cdf_recal', 'CRUDE']:
         return uct.get_proportion_lists_vectorized(mu, sigma, y,
                                                    recal_model=cal_dict['model'], 
-                                                   num_bins = num_bins)      
+                                                   num_bins = num_bins,
+                                                   prop_type = prop_type)      
+
+def get_rmsce(props):
+
+    squared_diff_proportions = np.square(props[0] - props[1])
+    return np.sqrt(np.mean(squared_diff_proportions))
+                    
     
 def get_intervals(mu, sigma, p, cal_dict = {'method': None,
                                      'model': None}):
@@ -96,10 +116,6 @@ def get_intervals(mu, sigma, p, cal_dict = {'method': None,
     
     return [interval.lower, interval.upper]
 
-def get_CRUDE_recalibrator(mu, sigma, y):
-    
-    return np.sort(get_scaled_residuals(mu, sigma, y)).tolist()
-                                                   
     
     
         
