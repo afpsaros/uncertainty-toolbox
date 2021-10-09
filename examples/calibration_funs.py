@@ -30,7 +30,7 @@ def get_stds_from_cdfs(cdfs, means, inv_recal = {'method': None,
                                                  'model': None}):
     stds = []
     for cdf, mu in zip(cdfs, means):
-        locs = np.linspace(0, 10, 1000)
+        locs = np.linspace(0, 15, 1000)
         
         if inv_recal['method'] is None:
             cdf_vals = cdf(np.sqrt(locs)) - cdf(-np.sqrt(locs))
@@ -45,10 +45,12 @@ def get_stds_from_cdfs(cdfs, means, inv_recal = {'method': None,
                                       y)
             cdf_vals = cdf_new(np.sqrt(locs)) - cdf_new(-np.sqrt(locs))
             
+        # plt.plot(cdf_vals)
+            
         vec = (1 - cdf_vals)  
         
         app = np.sqrt(np.trapz(vec, x = locs) - mu**2) if \
-            np.trapz(vec, x = locs) - mu**2 > 0 else 0.001
+            np.trapz(vec, x = locs) - mu**2 > 0 else 0.01
         stds.append(app)
         
     return stds

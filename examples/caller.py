@@ -32,21 +32,23 @@ n_tot = 500
 
 f_tot, std_orig, y_tot, x_tot = uct.synthetic_sine_heteroscedastic(n_tot)
 # std_tot = np.linspace(1.7, 1.5, n_tot) * std_orig
-std_tot = np.linspace(0.7, 0.5, n_tot) * std_orig
+std_tot = np.linspace(0.1, 0.2, n_tot) **2 * std_orig
+
 Y_tot = np.concatenate((f_tot.reshape(-1,1), std_tot.reshape(-1,1), y_tot.reshape(-1,1)), axis = 1)
 
-x_test, x_recal, Y_test, Y_recal = train_test_split(x_tot, Y_tot, test_size=0.01, random_state=42)
+x_test, x_recal, Y_test, Y_recal = train_test_split(x_tot, Y_tot, test_size=0.02, random_state=42)
 f_test, std_test, y_test = Y_test[:, 0], Y_test[:, 1], Y_test[:, 2]
-# f_recal, std_recal, y_recal = Y_recal[:, 0], Y_recal[:, 1], Y_recal[:, 2]
-f_recal, std_recal, y_recal = f_tot, std_tot, y_tot
+f_recal, std_recal, y_recal = Y_recal[:, 0], Y_recal[:, 1], Y_recal[:, 2]
+# f_recal, std_recal, y_recal = f_tot, std_tot, y_tot
 
-exp_props_orig, obs_props_orig = get_proportions(f_tot, std_orig, y_tot
-                                                 # , cal_dict = {'method': 'CRUDE',
-                                                 #               'model': get_CRUDE_recalibrator(f_tot, std_orig, y_tot)}
-                                                 # , num_bins = 10
-                                                 )
+exp_props_orig, obs_props_orig = get_proportions(f_tot, std_orig, y_tot)
 
-exp_props_mod, obs_props_mod = get_proportions(f_tot, std_tot, y_tot)
+exp_props_mod, obs_props_mod = get_proportions(f_tot, std_tot, y_tot, num_bins = 100)
+
+plt.plot(exp_props_orig, obs_props_orig)
+plt.plot(exp_props_mod, obs_props_mod)
+plt.show()
+#%%
 
 interval = get_intervals(f_tot, std_orig, 0.95)
 
@@ -167,8 +169,8 @@ axs2[1, 1].plot(xx, stats.norm.pdf(xx, 0, 1))
 axs2[1, 1].set_xlim([-5, 5])
 
 exp_props, obs_props = uct.get_proportion_lists_vectorized(
-            f_recal, std_recal, y_recal, num_bins = 500
-        )
+            f_recal, std_recal, y_recal, num_bins = 200)
+
 recal_model = uct.iso_recal(exp_props, obs_props)
 #%%
 ##############
@@ -196,8 +198,23 @@ exp_props_r3, obs_props_r3 = get_proportions(f_tot, std_tot, y_tot,
 interval = get_intervals(f_tot, std_tot, 0.95, 
                                              cal_dict={'method': 'cdf_recal',
                                                        'model': recal_model})
+#%%
+iexp_props, iobs_props = uct.get_proportion_lists_vectorized(
+            f_recal, std_recal, y_recal, prop_type = 'cdf_quantile'
+            # , num_bins = 200
+            )
+inv_recal_model = inverse_iso_recal(iexp_props, iobs_props)
 
-inv_recal_model = inverse_iso_recal(exp_props, obs_props)
+# plt.plot(iexp_props, iobs_props, 'o')
+# plt.plot(iexp_props, inv_recal_model.predict(iexp_props))
+
+iexp_props, iobs_props = uct.get_proportion_lists_vectorized(
+            f_tot, std_tot, y_tot, prop_type = 'quantile')
+
+# plt.plot(inv_recal_model.predict(iexp_props), iobs_props)
+
+
+#%%
 cdfs = []
 for mu, sigma in zip(f_tot, std_tot):
     norm = stats.norm(loc=mu, scale=sigma)
@@ -205,7 +222,7 @@ for mu, sigma in zip(f_tot, std_tot):
     
 stds_recal_3 = get_stds_from_cdfs(cdfs, f_tot, inv_recal = {'method': 'cdf_recal',
                                                             'model': inv_recal_model})
-
+#%%
 axs[1, 2].plot(x_tot, y_tot, '.')
 axs[1, 2].plot(x_tot, f_tot)
 axs[1, 2].fill_between(
@@ -233,6 +250,15 @@ plt.plot(exp_props_mod, obs_props_mod, label='modified')
 plt.plot(exp_props_r1, obs_props_r1, label='std recal')
 plt.plot(exp_props_r2, obs_props_r2, label='CRUDE recal')
 plt.plot(exp_props_r3, obs_props_r3, label='cdf recal')
+plt.legend()
+# plt.savefig('calibration_dec.png', dpi = 300, bbox_inches="tight")
+plt.show()
+
+plt.plot(std_orig, label='original')
+plt.plot(std_tot, label='modified')
+plt.plot(std_new, label='std recal')
+plt.plot(stds_recal_2, label='CRUDE recal')
+plt.plot(stds_recal_3, label='cdf recal')
 plt.legend()
 # plt.savefig('calibration_dec.png', dpi = 300, bbox_inches="tight")
 plt.show()

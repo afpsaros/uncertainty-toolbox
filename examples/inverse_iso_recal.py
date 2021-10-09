@@ -42,6 +42,8 @@ def inverse_iso_recal(
     # problematic if min_obs_p > 0 and max_obs_p < 1
     if not (min_obs == 0.0) and (max_obs == 1.0):
         print("Obs props not ideal: from {} to {}".format(min_obs, max_obs))
+        
+    # print(exp_props)
 
     exp_0_idx = get_q_idx(exp_props, 0.0)
     exp_1_idx = get_q_idx(exp_props, 1.0)

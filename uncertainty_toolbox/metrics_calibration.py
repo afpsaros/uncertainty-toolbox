@@ -335,10 +335,15 @@ def get_proportion_lists_vectorized(
     # Check that input std is positive
     assert_is_positive(y_std)
     # Check that prop_type is one of 'interval' or 'quantile'
-    assert prop_type in ["interval", "quantile"]
+    assert prop_type in ["interval", "quantile", 'cdf_quantile']
 
     # Compute proportions
-    exp_proportions = np.linspace(0, 1, num_bins)
+    if prop_type == 'cdf_quantile':
+        exp_proportions = np.sort(np.array([0.] + [stats.norm(loc=mu, scale=sigma).cdf(y) for mu,sigma,y in
+                        zip(y_pred, y_std, y_true)] +[1.]))  
+    else:
+        exp_proportions = np.linspace(0, 1, num_bins)
+       
     # If we are recalibrating, input proportions are recalibrated proportions
     if recal_model is not None and type(recal_model) is not list:
         in_exp_proportions = recal_model.predict(exp_proportions)
@@ -377,7 +382,7 @@ def get_proportion_lists_vectorized(
 
         within_quantile = above_lower * below_upper
         obs_proportions = np.sum(within_quantile, axis=0).flatten() / len(residuals)
-    elif prop_type == "quantile":
+    elif prop_type in ["quantile", 'cdf_quantile']:
         gaussian_quantile_bound = norm.ppf(in_exp_proportions)
         below_quantile = normalized_residuals <= gaussian_quantile_bound
         obs_proportions = np.sum(below_quantile, axis=0).flatten() / len(residuals)
