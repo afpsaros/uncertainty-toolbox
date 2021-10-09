@@ -142,26 +142,33 @@ for i, (p, r) in enumerate([(0, 0), (0, 1), (1, 0), (1, 1), (1, 2)]):
 plt.savefig('hist_inc.png', dpi = 300, bbox_inches="tight")
 plt.show()
 #%%
-plt.plot([0, 1], [0, 1], "--", label='ideal')
 labels = ['original', 'modified', 'std recal', 'CRUDE recal', 'cdf recal']
 for i in range(len(stds_final)):
     plt.plot(exp_props[i], obs_props[i], label=labels[i])
+plt.plot([0, 1], [0, 1], "--", label='ideal')
 plt.legend()
 plt.savefig('calibration_inc.png', dpi = 300, bbox_inches="tight")
 plt.show()
 
-plt.plot(modifier, label = 'modifier')
+# plt.plot(modifier, label = 'modifier')
 for i in range(len(stds_final)):
-    plt.plot(stds_final[i], label=labels[i])
+    plt.plot(x_tot, stds_final[i], label=labels[i])
 plt.legend()
 plt.savefig('std_inc.png', dpi = 300, bbox_inches="tight")
 plt.show()
 
-plt.plot(modifier, label = 'modifier')
+# plt.plot(modifier, label = 'modifier')
 for i in range(len(stds_final)):   
-    plt.plot(intervals[i][1] - intervals[i][0], label=labels[i])
+    plt.plot(x_tot, intervals[i][1] - intervals[i][0], label=labels[i])
 plt.legend()
 plt.savefig('perc_inc.png', dpi = 300, bbox_inches="tight")
+plt.show()
+
+# plt.plot(modifier, label = 'modifier')
+for i in range(len(stds_final)):   
+    plt.plot(x_tot, (intervals[i][1] - intervals[i][0]) / stds_final[i], label=labels[i])
+plt.legend()
+plt.savefig('non_normal_inc.png', dpi = 300, bbox_inches="tight")
 plt.show()
 
 
