@@ -34,9 +34,10 @@ def synthetic_arange_random(
 
     return y_pred, y_std, y_true, x
 
-
+import matplotlib.pyplot as plt
 def synthetic_sine_heteroscedastic(
     n_points: int = 10,
+    iden = 1
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Return samples from "synthetic sine" heteroscedastic noisy function.
 
@@ -56,8 +57,10 @@ def synthetic_sine_heteroscedastic(
 
     x = np.linspace(bounds[0], bounds[1], n_points)
 
-    f = np.sin(x)
-    std = 0.01 + np.abs(x - 5.0) / 10.0
+    f = np.sin(x * (iden - 5))
+    std = 0.01 + np.abs(x - 5.0 - iden) / 10.0
     noise = np.random.normal(scale=std)
     y = f + noise
+    
+    # plt.plot(std)
     return f, std, y, x
