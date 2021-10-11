@@ -93,8 +93,6 @@ def get_proportion_lists_vectorized(
             lower_bound = [recal_model[el] for el in args_lower]
             upper_bound = [recal_model[el] for el in args_upper]
             
-            
-
         above_lower = normalized_residuals >= lower_bound
         below_upper = normalized_residuals <= upper_bound
 

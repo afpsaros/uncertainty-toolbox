@@ -48,7 +48,18 @@ def get_stds_from_cdfs(means, un_cal_stds, inv_recal = {'method': None,
             
         elif inv_recal['method'] == 'cdf_recal':
             cdf_vals = inv_recal['model'].predict(cdf(np.sqrt(locs))) - inv_recal['model'].predict(cdf(-np.sqrt(locs)))
-         
+            
+            locs2 = np.linspace(0, 10, 1000)
+            mu_vals_1 = 1 - inv_recal['model'].predict(cdf(locs2))
+            mu_vals_2 = inv_recal['model'].predict(cdf(-locs2))
+            
+            # plt.plot(mu_vals_1)
+            # plt.plot(mu_vals_2)
+            
+            
+            mu_new = np.trapz(mu_vals_1, x = locs2) - np.trapz(mu_vals_2, x = locs2)
+            # print(np.abs(mu_new - mu))
+            
         elif inv_recal['method'] == 'CRUDE_recal':
             
             cdf_new = lambda y: CRUDE_cdf(*inv_recal['model'], 
