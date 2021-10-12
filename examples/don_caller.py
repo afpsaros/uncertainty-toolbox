@@ -53,9 +53,13 @@ plt.show()
 exp_props, obs_props, intervals, rmsces = [], [], [], []
 perc = 0.95
 #%%
+new_mean_list = []
+#%%
 props = get_proportions(f_con, std_con, y_con)
 exp_props.append(props[0])
 obs_props.append(props[1])
+
+new_mean_list.append(f_list)
 
 intervals.append([get_intervals(el1, el2, perc) for el1, el2 in zip(f_list, std_list)])
 
@@ -65,6 +69,8 @@ rmsces.append(get_rmsce(props))
 props = get_proportions(f_con, std_mod_con, y_con)
 exp_props.append(props[0])
 obs_props.append(props[1])
+
+new_mean_list.append(f_list)
 
 intervals.append([get_intervals(el1, el2, perc) for el1, el2 in zip(f_list, std_mod_list)])
 
@@ -77,6 +83,8 @@ props = get_proportions(f_con, std_mod_con, y_con, cal_dict={'method': 'std_reca
 
 exp_props.append(props[0])
 obs_props.append(props[1])
+
+new_mean_list.append(f_list)
 
 intervals.append([get_intervals(el1, el2, perc, cal_dict={'method': 'std_recal',
                                                                'model': recal_model})
@@ -91,6 +99,12 @@ props = get_proportions(f_con, std_mod_con, y_con, cal_dict={'method': 'CRUDE',
 exp_props.append(props[0])
 obs_props.append(props[1])
 
+inv_recal_model = recal_model
+new_mean_list.append([get_means_from_cdfs(el1, el2, 
+                                     inv_recal = {'method': 'CRUDE_recal',
+                                                  'model': inv_recal_model})
+                      for el1, el2 in zip(f_list, std_mod_list)])
+
 intervals.append([get_intervals(el1, el2, perc, cal_dict={'method': 'CRUDE',
                                                                'model': recal_model})
                    for el1, el2 in zip(f_list, std_mod_list)])
@@ -103,6 +117,15 @@ props = get_proportions(f_con, std_mod_con, y_con, cal_dict={'method': 'cdf_reca
                                                          'model': recal_model})
 exp_props.append(props[0])
 obs_props.append(props[1])
+
+iexp_props, iobs_props = get_proportions(f_recal, std_recal, y_recal
+                                         , prop_type = 'cdf_quantile')
+inv_recal_model = inverse_iso_recal(iexp_props, iobs_props)
+
+new_mean_list.append([get_means_from_cdfs(el1, el2, 
+                                     inv_recal = {'method': 'cdf_recal',
+                                                  'model': inv_recal_model})
+                      for el1, el2 in zip(f_list, std_mod_list)])
 
 intervals.append([get_intervals(el1, el2, perc, cal_dict={'method': 'cdf_recal',
                                                                'model': recal_model})

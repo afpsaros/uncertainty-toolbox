@@ -27,54 +27,58 @@ def CRUDE_cdf(mu_recal, sigma_recal, y_recal, mu_eval, sigma_eval, y_evals):
     
     return np.array(cdf_list)
 
-def get_stds_from_cdfs(means, un_cal_stds, inv_recal = {'method': None,
-                                                        'model': None}):
+def get_means_from_cdfs(un_cal_means, un_cal_stds, inv_recal = {'method': None,
+                                                        'model': None},
+                        locs = np.linspace(0, 10, 1000)):
     
-    cdfs = []
+    # Only for CDF and CRUDE recalibration
+    if inv_recal['method'] == 'CRUDE_recal':
+        crude_mean = np.mean(inv_recal['model'])
+        
+    means = []
+    for mu, sigma in zip(un_cal_means, un_cal_stds):
+        if inv_recal['method'] == 'cdf_recal':
+            norm = stats.norm(loc=mu, scale=sigma)
+            cdf = norm.cdf
+            
+            mu_vals_1 = 1 - inv_recal['model'].predict(cdf(locs))
+            mu_vals_2 = inv_recal['model'].predict(cdf(-locs))
+        
+            means.append(np.trapz(mu_vals_1, x = locs) - np.trapz(mu_vals_2, x = locs))
+            
+        elif inv_recal['method'] == 'CRUDE_recal':
+            means.append(mu + sigma * crude_mean)
+            
+    return means
+    
+def get_stds_from_cdfs(means, un_cal_stds, inv_recal = {'method': None,
+                                                        'model': None},
+                       locs = np.linspace(0, 10, 10000)):
+    
+    stds = []
     if inv_recal['method'] in [None, 'cdf_recal']:
         for mu, sigma in zip(means, un_cal_stds):
             norm = stats.norm(loc=mu, scale=sigma)
-            cdfs.append(norm.cdf)
-    elif inv_recal['method'] == 'CRUDE_recal': 
+            cdf = norm.cdf
+            
+            if inv_recal['method'] is None:
+                cdf_vals = cdf(np.sqrt(locs)) - cdf(-np.sqrt(locs))
+            elif inv_recal['method'] == 'cdf_recal':
+                cdf_vals = inv_recal['model'].predict(cdf(np.sqrt(locs))) - inv_recal['model'].predict(cdf(-np.sqrt(locs)))
+                
+            vec = (1 - cdf_vals)  
+        
+            app = np.sqrt(np.trapz(vec, x = locs) - mu**2) if \
+                np.trapz(vec, x = locs) - mu**2 > 0 else 0.01
+            stds.append(app)
+                
+    elif inv_recal['method'] == 'CRUDE_recal':
+        crude_mean = np.mean(inv_recal['model'])
+        crude_std = np.sqrt(np.mean((inv_recal['model'] - crude_mean)**2))
+        
         for mu, sigma in zip(means, un_cal_stds):
-            cdfs.append([mu, sigma])
+            stds.append(sigma * crude_std)
     
-    stds = []
-    for cdf, mu in zip(cdfs, means):
-        locs = np.linspace(0, 5, 1000)
-        
-        if inv_recal['method'] is None:
-            cdf_vals = cdf(np.sqrt(locs)) - cdf(-np.sqrt(locs))
-            
-        elif inv_recal['method'] == 'cdf_recal':
-            cdf_vals = inv_recal['model'].predict(cdf(np.sqrt(locs))) - inv_recal['model'].predict(cdf(-np.sqrt(locs)))
-            
-            locs2 = np.linspace(0, 10, 1000)
-            mu_vals_1 = 1 - inv_recal['model'].predict(cdf(locs2))
-            mu_vals_2 = inv_recal['model'].predict(cdf(-locs2))
-            
-            # plt.plot(mu_vals_1)
-            # plt.plot(mu_vals_2)
-            
-            
-            mu_new = np.trapz(mu_vals_1, x = locs2) - np.trapz(mu_vals_2, x = locs2)
-            # print(np.abs(mu_new - mu))
-            
-        elif inv_recal['method'] == 'CRUDE_recal':
-            
-            cdf_new = lambda y: CRUDE_cdf(*inv_recal['model'], 
-                                      *cdf,
-                                      y)
-            cdf_vals = cdf_new(np.sqrt(locs)) - cdf_new(-np.sqrt(locs))
-            
-        # plt.plot(cdf_vals)
-            
-        vec = (1 - cdf_vals)  
-        
-        app = np.sqrt(np.trapz(vec, x = locs) - mu**2) if \
-            np.trapz(vec, x = locs) - mu**2 > 0 else 0.01
-        stds.append(app)
-        
     return stds
 
 def get_calibrator(mu, sigma, y, method):
