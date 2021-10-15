@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.isotonic import IsotonicRegression
 from scipy.optimize import minimize_scalar
 
-from metrics_calibration import *
+from uqt_cal_metrics import *
 
 
 def get_q_idx(exp_props: np.ndarray, q: float) -> int:

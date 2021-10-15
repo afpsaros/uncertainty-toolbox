@@ -11,8 +11,8 @@ from sklearn.model_selection import train_test_split
 import scipy.stats as stats
 
 from data import *
-from recalibration import *
-from calibration_funs import *
+from uqt_recalibration import *
+from cal_funs import *
 #%%
 np.random.seed(11)
 n_tot = 500
@@ -114,7 +114,7 @@ new_means = get_means_from_cdfs(f_tot, std_tot,
 
 means_final.append(new_means)
      
-stds_final.append(get_stds_from_cdfs(f_tot, std_tot, 
+stds_final.append(get_stds_from_cdfs(new_means, std_tot, 
                                      inv_recal = {'method': 'cdf_recal',
                                                   'model': inv_recal_model}))
 #%%

@@ -11,7 +11,6 @@ from scipy import stats
 from shapely.geometry import Polygon, LineString
 from shapely.ops import polygonize, unary_union
 from sklearn.isotonic import IsotonicRegression
-from tqdm import tqdm
 
 def get_proportion_lists_vectorized(
     y_pred: np.ndarray,

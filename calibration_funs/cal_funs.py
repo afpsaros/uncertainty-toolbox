@@ -2,15 +2,15 @@
 """
 Created on Thu Oct  7 17:12:30 2021
 
-@author: afpsa
+@author: afpsaros
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
-from metrics_calibration import *
-from recalibration import *
+from uqt_cal_metrics import *
+from uqt_recalibration import *
 
 def get_scaled_residuals(mu, sigma, y):
     
