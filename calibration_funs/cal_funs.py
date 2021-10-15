@@ -92,6 +92,19 @@ def get_calibrator(mu, sigma, y, method):
     elif method == 'CRUDE':
         return np.sort(get_scaled_residuals(mu, sigma, y)).tolist()
     
+def get_inv_calibrator(mu, sigma, y, method):
+    if method == 'std_recal':
+        return get_std_recalibrator(mu, sigma, y)
+    elif method == 'cdf_recal': 
+        
+        iexp_props, iobs_props = get_proportions(mu, sigma, y, prop_type = 'cdf_quantile')
+                                         
+        inv_recal_model = inverse_iso_recal(iexp_props, iobs_props)
+
+        return inverse_iso_recal(iexp_props, iobs_props)
+    elif method == 'CRUDE':
+        return np.sort(get_scaled_residuals(mu, sigma, y)).tolist()
+    
 def get_proportions(mu, sigma, y, cal_dict = {'method': None, 'model': None},
                     num_bins = 20, prop_type = 'quantile'):
     
